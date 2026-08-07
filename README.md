@@ -2,12 +2,13 @@
 
 This is the companion lab for **Robot Fleet Deployment**, an article series on
 [blog.bensoussan.de](https://blog.bensoussan.de/tags/robot-fleet/) about deploying
-software to a fleet of edge-connected robots. The series argues that platform
-engineering instincts built for the cloud — pods restart for free, services are
-reachable inbound, the network is yours — do not transfer to a robot sitting at a
-customer site behind a NAT, mid-motion, on a connection you do not control. This
-repository is where those arguments become something you can run instead of take on
-faith.
+software to a fleet of edge-connected robots. Most robotics companies ship
+application code competently and have no way to patch the operating system
+underneath it — the machine is behind a customer's NAT, it may be mid-task, and a
+failed update means someone drives to the site. The series works through a complete
+deployment architecture for that problem, on two separate release paths: one that
+restarts, and one that reboots. This repository is where those arguments become
+something you can run instead of take on faith.
 
 ## Status: nothing boots yet
 
