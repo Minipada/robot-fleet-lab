@@ -1,0 +1,73 @@
+name: Lint
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: lint-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install lint tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          pip install --disable-pip-version-check yamllint ansible-lint
+
+      - name: Shellcheck
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find . -type f -name '*.sh' -not -path './.git/*')
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No shell scripts yet — nothing to lint."
+            exit 0
+          fi
+          shellcheck "${files[@]}"
+
+      - name: YAML validation
+        run: |
+          set -euo pipefail
+          yamllint .
+
+      - name: Ansible lint
+        run: |
+          set -euo pipefail
+          mapfile -t dirs < <(find . -type d \( -name playbooks -o -name roles \) \
+            -not -path './.git/*')
+          if [ "${#dirs[@]}" -eq 0 ]; then
+            echo "No Ansible content yet — nothing to lint."
+            exit 0
+          fi
+          ansible-lint
+
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310  # v5.0.1
+        with:
+          version: latest
+
+      - name: Helm template rendering
+        run: |
+          set -euo pipefail
+          mapfile -t charts < <(find . -maxdepth 4 -type f -name 'Chart.yaml' -not -path './.git/*')
+          if [ "${#charts[@]}" -eq 0 ]; then
+            echo "No Helm charts yet — nothing to render."
+            exit 0
+          fi
+          for chart in "${charts[@]}"; do
+            dir=$(dirname "$chart")
+            echo "::group::helm lint $dir"
+            helm lint "$dir"
+            echo "::endgroup::"
+            echo "::group::helm template $dir"
+            helm template "$dir"
+            echo "::endgroup::"
+          done

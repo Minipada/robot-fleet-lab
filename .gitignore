@@ -1,0 +1,12 @@
+# Vagrant
+.vagrant/
+
+# Ansible
+*.retry
+
+# Helm
+charts/*/charts/
+*.tgz
+
+# Editor/OS cruft
+.DS_Store
