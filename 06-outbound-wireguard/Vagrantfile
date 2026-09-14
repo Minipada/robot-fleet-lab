@@ -1,0 +1,51 @@
+# frozen_string_literal: true
+
+# Lab increment for "Connecting Edge Sites Through NAT": one hub, one edge
+# site, and a stand-in for the customer's router between them. Every
+# connection starts at the edge and travels outward; the customer's router
+# forwards nothing in.
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "debian/bookworm64"
+  config.vm.boot_timeout = 600
+
+  # Stands in for the firewall at the customer's network. The operator never
+  # configures this machine; it NATs the site's LAN outward and its FORWARD
+  # chain accepts only traffic that belongs to a session the site started.
+  config.vm.define "nat" do |nat|
+    nat.vm.hostname = "nat"
+    nat.vm.network "private_network", ip: "192.168.77.1"
+    nat.vm.network "private_network", ip: "192.168.78.1"
+    nat.vm.provider "virtualbox" do |vb|
+      vb.memory = 384
+      vb.cpus = 1
+    end
+    # "always": the iptables rules are not persisted, so they re-apply on
+    # every boot; the script is idempotent.
+    nat.vm.provision :shell, path: "provision/nat.sh", run: "always"
+  end
+
+  # The central cluster. It only ever listens; the return path into a site
+  # exists because the site dialed out, never because the hub dialed in.
+  config.vm.define "hub" do |hub|
+    hub.vm.hostname = "hub"
+    hub.vm.network "private_network", ip: "192.168.77.10"
+    hub.vm.provider "virtualbox" do |vb|
+      vb.memory = 768
+      vb.cpus = 1
+    end
+    hub.vm.provision :shell, path: "provision/hub.sh", run: "always"
+  end
+
+  # The edge server at the site. The only machine in the lab that ever
+  # initiates a connection.
+  config.vm.define "edge" do |edge|
+    edge.vm.hostname = "edge"
+    edge.vm.network "private_network", ip: "192.168.78.10"
+    edge.vm.provider "virtualbox" do |vb|
+      vb.memory = 768
+      vb.cpus = 1
+    end
+    edge.vm.provision :shell, path: "provision/edge.sh", run: "always"
+  end
+end
