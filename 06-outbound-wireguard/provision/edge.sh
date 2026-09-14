@@ -42,5 +42,10 @@ AllowedIPs = 10.77.0.0/24
 PersistentKeepalive = 25
 EOF
 
+# The site's router is the default gateway, as it would be in production:
+# without this, the virtualization host offers the dial a shortcut that
+# skips the router entirely, and the lab would stop proving anything.
+ip route replace default via 192.168.78.2
+
 wg-quick down wg0 2>/dev/null || true
 wg-quick up wg0

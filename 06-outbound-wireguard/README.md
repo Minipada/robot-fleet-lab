@@ -30,7 +30,7 @@ for.
                  192.168.77.0/24                   192.168.78.0/24
                 ┌───────────────┐   ┌─────────────┐   ┌────────────────┐
                 │      hub      │   │ nat (router)│   │      edge      │
-                │ 192.168.77.10 │◄──│  .77.1/.78.1│◄──│  192.168.78.10 │
+                │ 192.168.77.10 │◄──│  .77.2/.78.2│◄──│  192.168.78.10 │
                 │  wg0 10.77.0.1│   │  NAT out →  │   │  wg0 10.77.0.2 │
                 │ UDP/51820 open│   │ forward: nil│   │ dials out only │
                 └───────────────┘   └─────────────┘   └────────────────┘
@@ -38,14 +38,17 @@ for.
 
 - `hub` — the central cluster. Listens on UDP 51820 and answers. It never
   dials a site; the site's own outbound packets are what give the hub a return
-  path.
+  path. The site's LAN range is installed as an unreachable route, the way
+  production hubs have no path into a customer's network.
 - `nat` — stands in for the customer's firewall. It does exactly what a
   customer's router does: masquerades the LAN outward, forwards nothing in,
   accepts no new inbound session. Nothing in this lab ever configures it from
-  the fleet side.
+  the fleet side. (The router takes `.2` on both networks: the host takes
+  `.1` on VirtualBox host-only networks.)
 - `edge` — the edge server at the site. It dials the hub, keeps the mapping
   alive with `PersistentKeepalive = 25`, and is the only machine that ever
-  initiates anything.
+  initiates anything. Its default gateway is the router, so every packet out
+  crosses it, exactly as at a real site.
 
 ## Running it
 
