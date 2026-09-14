@@ -12,10 +12,12 @@ Vagrant.configure("2") do |config|
   # Stands in for the firewall at the customer's network. The operator never
   # configures this machine; it NATs the site's LAN outward and its FORWARD
   # chain accepts only traffic that belongs to a session the site started.
+  # The .2 addresses: VirtualBox gives the host .1 on every host-only
+  # network, so a VM claiming .1 would collide with it.
   config.vm.define "nat" do |nat|
     nat.vm.hostname = "nat"
-    nat.vm.network "private_network", ip: "192.168.77.1"
-    nat.vm.network "private_network", ip: "192.168.78.1"
+    nat.vm.network "private_network", ip: "192.168.77.2"
+    nat.vm.network "private_network", ip: "192.168.78.2"
     nat.vm.provider "virtualbox" do |vb|
       vb.memory = 384
       vb.cpus = 1

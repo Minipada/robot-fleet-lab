@@ -41,6 +41,11 @@ fi
 systemctl enable wg-quick@wg0 >/dev/null
 systemctl restart wg-quick@wg0
 
+# The site's LAN range is unreachable from here: in production nothing
+# routes it to us, and in the lab the virtualization host would otherwise
+# offer a shortcut around the site's router. Name the address, fail fast.
+ip route replace unreachable 192.168.78.0/24
+
 install -m 0755 /vagrant/provision/hub-admit-edge.sh /usr/local/bin/hub-admit-edge
 install -m 0644 /vagrant/provision/admit-edge.service /etc/systemd/system/admit-edge.service
 systemctl daemon-reload

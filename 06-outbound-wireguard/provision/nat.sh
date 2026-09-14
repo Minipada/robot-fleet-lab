@@ -10,8 +10,8 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq --no-install-recommends iptables >/dev/null
 
-WAN_IF="$(ip -o -4 addr show | awk '$4 == "192.168.77.1/24" {print $2}')"
-LAN_IF="$(ip -o -4 addr show | awk '$4 == "192.168.78.1/24" {print $2}')"
+WAN_IF="$(ip -o -4 addr show | awk '$4 == "192.168.77.2/24" {print $2}')"
+LAN_IF="$(ip -o -4 addr show | awk '$4 == "192.168.78.2/24" {print $2}')"
 if [ -z "${WAN_IF}" ] || [ -z "${LAN_IF}" ]; then
     echo "nat: could not find WAN/LAN interfaces by address" >&2
     exit 1
