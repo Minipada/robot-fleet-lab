@@ -10,3 +10,6 @@ charts/*/charts/
 
 # Editor/OS cruft
 .DS_Store
+
+# Runtime-generated WireGuard keys
+06-outbound-wireguard/keys/

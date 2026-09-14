@@ -9,14 +9,16 @@ customer site behind a NAT, mid-motion, on a connection you do not control. This
 repository is where those arguments become something you can run instead of take on
 faith.
 
-## Status: nothing boots yet
+## Status: first increment boots
 
-As of this commit, this repository contains documentation and a CI lint gate only.
-There is no `Vagrantfile`, no Ansible playbook, no Helm chart, no Kubernetes
-manifest, and `vagrant up` does not work. Each article in the series that carries a
-runnable claim adds one increment, in its own directory, as it publishes. This
-README will stop saying "nothing boots yet" the day that stops being true, and not
-before.
+[06-outbound-wireguard/](06-outbound-wireguard/) is runnable: one hub, a
+stand-in for the customer's router, one edge site, and the outbound-only
+WireGuard tunnel between them. `vagrant up` inside that directory boots all
+three, and `scripts/demo.sh` walks through the proof per machine.
+
+Everything else — k3s on the edge servers, the two release paths, the
+remaining ring sites — is still documentation only. Each article that carries
+a runnable claim adds one increment, in its own directory, as it publishes.
 
 The lint gate below runs from this first commit specifically so that everything
 added afterward — starting with the first playbook — is held to a standard from its
