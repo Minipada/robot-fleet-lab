@@ -17,6 +17,11 @@ if [ -z "${WAN_IF}" ] || [ -z "${LAN_IF}" ]; then
     exit 1
 fi
 
+# The lab harness reaches this machine over its default-route interface,
+# the way a customer's admin reaches their router from their own side.
+# Without this allow, the INPUT policy below locks Vagrant out.
+MGMT_IF="$(ip route show default | awk '{print $5; exit}')"
+
 echo 1 > /proc/sys/net/ipv4/ip_forward
 
 iptables -P INPUT DROP
@@ -25,6 +30,7 @@ iptables -F INPUT
 iptables -F FORWARD
 iptables -t nat -F POSTROUTING
 iptables -A INPUT -i lo -j ACCEPT
+iptables -A INPUT -i "${MGMT_IF}" -p tcp --dport 22 -j ACCEPT
 iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 iptables -A FORWARD -i "${WAN_IF}" -o "${LAN_IF}" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 iptables -A FORWARD -i "${LAN_IF}" -o "${WAN_IF}" -j ACCEPT
