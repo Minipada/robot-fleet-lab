@@ -42,9 +42,11 @@ for.
   production hubs have no path into a customer's network.
 - `nat` — stands in for the customer's firewall. It does exactly what a
   customer's router does: masquerades the LAN outward, forwards nothing in,
-  accepts no new inbound session. Nothing in this lab ever configures it from
-  the fleet side. (The router takes `.2` on both networks: the host takes
-  `.1` on VirtualBox host-only networks.)
+  accepts no new inbound session. The one exception is SSH from the harness's
+  management interface, the way a customer's admin reaches their router from
+  their own side. Nothing in this lab ever configures it from the fleet side.
+  (The router takes `.2` on both networks: the host takes `.1` on VirtualBox
+  host-only networks.)
 - `edge` — the edge server at the site. It dials the hub, keeps the mapping
   alive with `PersistentKeepalive = 25`, and is the only machine that ever
   initiates anything. Its default gateway is the router, so every packet out

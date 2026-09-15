@@ -10,6 +10,12 @@
 # sets -e: an unreachable dial must print and continue, not abort.
 set -uo pipefail
 
+# wg show and iptables need root; vagrant ssh lands on the unprivileged
+# vagrant user, so elevate and start over.
+if [ "$(id -u)" -ne 0 ]; then
+    exec sudo bash "$0" "$@"
+fi
+
 case "$(hostname -s)" in
 hub)
     echo "== 1. The hub has no route into the customer's network"

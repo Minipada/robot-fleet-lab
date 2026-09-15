@@ -9,6 +9,13 @@ Vagrant.configure("2") do |config|
   config.vm.box = "debian/bookworm64"
   config.vm.boot_timeout = 600
 
+  # The key exchange needs /vagrant writable from every machine. VirtualBox
+  # provides that with its native shared folder; under libvirt pick 9p with
+  # mapped ownership, so no NFS export (and no sudo prompt) is needed on the
+  # host, and guests can write despite the unprivileged QEMU daemon.
+  share = Vagrant.has_plugin?("vagrant-libvirt") ? { type: "9p", accessmode: "mapped" } : {}
+  config.vm.synced_folder ".", "/vagrant", **share
+
   # Stands in for the firewall at the customer's network. The operator never
   # configures this machine; it NATs the site's LAN outward and its FORWARD
   # chain accepts only traffic that belongs to a session the site started.
@@ -21,6 +28,10 @@ Vagrant.configure("2") do |config|
     nat.vm.provider "virtualbox" do |vb|
       vb.memory = 384
       vb.cpus = 1
+    end
+    nat.vm.provider "libvirt" do |lv|
+      lv.memory = 384
+      lv.cpus = 1
     end
     # "always": the iptables rules are not persisted, so they re-apply on
     # every boot; the script is idempotent.
@@ -36,6 +47,10 @@ Vagrant.configure("2") do |config|
       vb.memory = 768
       vb.cpus = 1
     end
+    hub.vm.provider "libvirt" do |lv|
+      lv.memory = 768
+      lv.cpus = 1
+    end
     hub.vm.provision :shell, path: "provision/hub.sh", run: "always"
   end
 
@@ -47,6 +62,10 @@ Vagrant.configure("2") do |config|
     edge.vm.provider "virtualbox" do |vb|
       vb.memory = 768
       vb.cpus = 1
+    end
+    edge.vm.provider "libvirt" do |lv|
+      lv.memory = 768
+      lv.cpus = 1
     end
     edge.vm.provision :shell, path: "provision/edge.sh", run: "always"
   end
