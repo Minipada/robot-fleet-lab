@@ -1,0 +1,68 @@
+# frozen_string_literal: true
+
+# Lab increment for "Provisioning Edge Servers with PXE": an edge server that
+# answers a blank robot's network boot, and a robot with an empty disk.
+#
+# The install network is isolated. The robot has no other network and no
+# internet, which is the situation in the field. Only the edge server has a
+# second interface (Vagrant's management network) for installing packages.
+#
+# Libvirt only: a box-less, disk-blank machine that boots from the network is
+# something vagrant-libvirt does natively.
+
+INSTALL_NET = "fleet-install"
+EDGE_IP = "192.168.79.2"
+
+Vagrant.configure("2") do |config|
+  # A 9p share would need the libvirt QEMU user to read this checkout, which
+  # a private home directory forbids. rsync copies the few files the edge
+  # server needs into the guest instead.
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+
+  config.vm.define "edge", primary: true do |edge|
+    edge.vm.box = "debian/bookworm64"
+    edge.vm.hostname = "edge"
+    edge.vm.synced_folder "provision", "/srv/provision", type: "rsync"
+    edge.vm.synced_folder "build/tmp/deploy/images/qemux86-64", "/srv/images",
+                          type: "rsync",
+                          rsync__args: ["--archive", "--copy-links", "--verbose"],
+                          rsync__exclude: ["*.spdx.tar.zst", "modules-*", "*.testdata.json", "*.qemuboot.conf", "*-2026*"]
+    edge.vm.network "private_network",
+                    ip: EDGE_IP,
+                    libvirt__network_name: INSTALL_NET,
+                    libvirt__dhcp_enabled: false,
+                    libvirt__forward_mode: "none"
+    edge.vm.provider "libvirt" do |lv|
+      lv.memory = 512
+      lv.cpus = 1
+    end
+    edge.vm.provision :shell, path: "provision/edge.sh", args: [EDGE_IP], run: "always"
+  end
+
+  # No box and no management interface: the robot has one network card, on
+  # the install network, and a blank disk. Boot order is the disk, then the
+  # network, so a blank robot installs itself and an installed one runs.
+  config.vm.define "robot", autostart: false do |robot|
+    robot.vm.box = nil
+    robot.vm.network "private_network",
+                     auto_config: false,
+                     libvirt__network_name: INSTALL_NET,
+                     libvirt__dhcp_enabled: false,
+                     libvirt__forward_mode: "none"
+    robot.vm.provider "libvirt" do |lv|
+      lv.mgmt_attach = false
+      lv.memory = 1024
+      lv.cpus = 2
+      lv.storage :file, size: "2G", type: "qcow2"
+      lv.loader = "/usr/share/OVMF/OVMF_CODE_4M.fd"
+      lv.nvram = "/var/lib/libvirt/images/fleet-robot_VARS.fd"
+      lv.machine_type = "q35"
+      # Disk first, network second: a robot with a blank disk falls through
+      # to the network, and one that has been installed boots its disk.
+      lv.boot "hd"
+      lv.boot "network"
+      lv.graphics_type = "none"
+      lv.serial :type => "pty"
+    end
+  end
+end

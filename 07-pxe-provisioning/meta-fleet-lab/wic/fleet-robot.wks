@@ -1,0 +1,5 @@
+# One UEFI boot partition and one root filesystem. The A/B slot layout and
+# the data partition arrive with the next article.
+part /boot --source bootimg-efi --sourceparams="loader=systemd-boot" --ondisk vda --label boot --active --align 1024 --fstype=vfat --size=64M
+part / --source rootfs --ondisk vda --use-uuid --label root --align 1024 --fstype=ext4
+bootloader --ptable gpt --timeout=0
