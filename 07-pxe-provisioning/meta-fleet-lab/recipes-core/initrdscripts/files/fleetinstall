@@ -1,0 +1,86 @@
+#!/bin/sh
+# initramfs-framework module: write the robot image to the first disk, then
+# restart from that disk.
+#
+# The boot parameters that iPXE passes on the kernel command line:
+#   fleet.url=http://<edge>:8080     where the image and its block map live
+#   fleet.image=<name>.wic.gz        optional, the compressed image
+#   fleet.bmap=<name>.wic.bmap       optional, its block map
+#
+# Every failure goes to fatal(), which prints the reason on the console and
+# stops. A robot that did not install has to say so.
+
+# The initramfs starts /init with an empty environment, and bmaptool looks up
+# gzip and friends through PATH.
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+fleetinstall_enabled() {
+	[ -n "$bootparam_fleet_url" ]
+}
+
+fleetinstall_nic() {
+	for n in /sys/class/net/*; do
+		[ "$(basename "$n")" = "lo" ] && continue
+		basename "$n"
+		return 0
+	done
+	return 1
+}
+
+fleetinstall_disk() {
+	for d in /dev/vda /dev/nvme0n1 /dev/sda; do
+		if [ -b "$d" ]; then
+			echo "$d"
+			return 0
+		fi
+	done
+	return 1
+}
+
+# Remove every network-boot entry and any earlier entry of ours, then add one
+# for the disk that was just written. A new entry goes first in the order.
+fleetinstall_boot_order() {
+	disk="$1"
+
+	if [ ! -d /sys/firmware/efi ]; then
+		msg "fleet-install: firmware is not UEFI, cannot change the boot order"
+		return 0
+	fi
+
+	for num in $(efibootmgr | sed -n -E 's/^Boot([0-9A-Fa-f]{4})\*? .*(PXE|IPv4|IPv6|HTTP|fleet-robot).*/\1/p'); do
+		msg "fleet-install: removing boot entry Boot$num"
+		efibootmgr --quiet --delete-bootnum --bootnum "$num" || fatal "fleet-install: efibootmgr could not remove Boot$num"
+	done
+
+	efibootmgr --quiet --create --disk "$disk" --part 1 --label "fleet-robot" \
+		--loader '\EFI\BOOT\bootx64.efi' || fatal "fleet-install: efibootmgr could not add the disk entry"
+	msg "fleet-install: boot order now:"
+	efibootmgr >/dev/console
+}
+
+fleetinstall_run() {
+	url="$bootparam_fleet_url"
+	image="${bootparam_fleet_image:-fleet-robot-image-qemux86-64.rootfs.wic.gz}"
+	bmap="${bootparam_fleet_bmap:-fleet-robot-image-qemux86-64.rootfs.wic.bmap}"
+
+	msg "fleet-install: starting, image source $url"
+
+	nic="$(fleetinstall_nic)" || fatal "fleet-install: no network interface"
+	ip link set "$nic" up
+	udhcpc -i "$nic" -n -q -t 10 >/dev/console 2>&1 || fatal "fleet-install: no DHCP answer on $nic"
+
+	disk="$(fleetinstall_disk)" || fatal "fleet-install: no disk to install to"
+	msg "fleet-install: writing $image to $disk"
+
+	bmaptool copy --bmap "$url/$bmap" "$url/$image" "$disk" >/dev/console 2>&1 ||
+		fatal "fleet-install: bmaptool failed, the disk was not completed"
+	sync
+
+	# Let the kernel see the partition table that was just written.
+	blockdev --rereadpt "$disk" || fatal "fleet-install: could not re-read the partition table on $disk"
+	fleetinstall_boot_order "$disk"
+
+	msg "fleet-install: done, restarting from disk"
+	sleep 2
+	reboot -f
+}
