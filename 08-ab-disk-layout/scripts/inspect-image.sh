@@ -34,7 +34,7 @@ else
 fi
 
 echo
-echo "image: fleet-robot-image ($(du -h "$IMAGE" | cut -f1) decompressed)"
+echo "image file: fleet-robot-image ($(du -h "$IMAGE" | cut -f1) decompressed)"
 echo
 (cd "$(dirname "$IMAGE")" && sfdisk -d "$(basename "$IMAGE")")
 echo
