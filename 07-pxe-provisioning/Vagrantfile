@@ -44,8 +44,11 @@ Vagrant.configure("2") do |config|
   # network, so a blank robot installs itself and an installed one runs.
   config.vm.define "robot", autostart: false do |robot|
     robot.vm.box = nil
+    # A fixed hardware address, so the edge server gives the robot the same
+    # address every time (see provision/dnsmasq-fleet.conf.in).
     robot.vm.network "private_network",
                      auto_config: false,
+                     mac: "525400000a0a",
                      libvirt__network_name: INSTALL_NET,
                      libvirt__dhcp_enabled: false,
                      libvirt__forward_mode: "none"

@@ -28,11 +28,29 @@ Watch the console. After about 30 seconds you see the installer write the
 disk, then the robot restarts and shows:
 
 ```text
+Welcome to the Robot!
+This image was loaded through iPXE from the edge server.
+
 Robot Fleet Lab 0.1 robot /dev/ttyS0
 robot login:
 ```
 
-Leave the console with `Ctrl+]`. The image has no login; it is a boot test.
+Log in as `root` (no password), or leave the console with `Ctrl+]`.
+
+## Looking at the VMs
+
+- Edge server: `vagrant ssh edge`. Try `journalctl -u dnsmasq -f` for the DHCP
+  log and `ls /srv/images` for what it serves.
+- Robot, over SSH: `ssh root@192.168.79.10`. The edge server always gives the
+  robot that address. Your host reaches it because libvirt puts your machine
+  on the install network (`192.168.79.1`). `vagrant ssh robot` does not work:
+  the robot has no Vagrant management network.
+- Robot, over the serial console: `virsh -c qemu:///system console
+  07-pxe-provisioning_robot`. This is the only view while it installs, because
+  there is no SSH server in the installer.
+
+Root has an empty password. That is only acceptable because the install
+network is isolated; a real robot gets SSH keys.
 
 Run it again from a blank robot with `scripts/robot-reset.sh` followed by
 `vagrant up robot`. Remove everything with `scripts/clean.sh`.
@@ -68,8 +86,9 @@ vagrant rsync edge && vagrant provision edge
 - `meta-fleet-lab/`: the layer.
   - `conf/distro/fleet-lab.conf`: the distribution, poky renamed "Robot Fleet
     Lab".
-  - `fleet-robot-image`: kernel, busybox and nothing else. UEFI, systemd-boot,
-    shipped as `wic.gz` plus a `wic.bmap`.
+  - `fleet-robot-image`: kernel, busybox, a DHCP client and the dropbear SSH
+    server. UEFI, systemd-boot, shipped as `wic.gz` plus a `wic.bmap`. The
+    greeting is in `base-files/files/{issue,motd}`.
   - `fleet-installer-image`: an initramfs with `bmaptool`, `efibootmgr` and the
     install script `fleetinstall`. It is the program the blank robot runs.
 - `Vagrantfile`: `edge` (dnsmasq, iPXE, nginx) and `robot` (no box, blank disk,
@@ -85,7 +104,9 @@ vagrant rsync edge && vagrant provision edge
    kernel and initramfs over HTTP.
 3. The installer writes the image with `bmaptool`, removes the network boot
    entries from the firmware, adds one for the disk, and reboots.
-4. The second start goes to the disk and does not touch the network.
+4. The second start goes to the disk. The installed robot asks DHCP for an
+   address (always `192.168.79.10`) and starts SSH; it does not need the edge
+   server to boot.
 
 The robot VM is set up the way a real robot would be: disk first, network
 second. Putting the network first would not work in libvirt, because libvirt
@@ -124,8 +145,10 @@ directory, on one Linux host with libvirt, QEMU/KVM and OVMF:
   `bmaptool` (about 30 MiB/s, block checksums checked), removed the stale
   entries from the firmware, added a `fleet-robot` disk entry, and rebooted.
 - The second start loaded `fleet-robot` from the disk, reached the login
-  prompt of the Yocto image, and did not touch the network. A further reset
-  behaved the same.
+  prompt of the Yocto image. With the edge server stopped it still booted. A
+  further reset behaved the same.
+- After the robot restarted, `ssh root@192.168.79.10` from the host showed the
+  greeting and a shell.
 
 ## What this does not prove
 

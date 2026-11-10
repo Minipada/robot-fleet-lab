@@ -8,6 +8,9 @@ bind-interfaces
 # Addresses handed to robots.
 dhcp-range=192.168.79.100,192.168.79.150,12h
 
+# The lab robot always gets the same address, so you can ssh to it.
+dhcp-host=52:54:00:00:0a:0a,robot,192.168.79.10
+
 # iPXE identifies itself with DHCP option 175. Tag those requests "ipxe".
 dhcp-match=set:ipxe,175
 
