@@ -1,0 +1,37 @@
+header:
+  version: 8
+
+# The smallest image that boots on a UEFI machine, plus the installer that
+# writes it to a blank disk. Both build from one workspace, so one kas call
+# produces everything the edge server serves.
+machine: qemux86-64
+distro: fleet-lab
+target:
+  - fleet-robot-image
+  - fleet-installer-image
+
+repos:
+  poky:
+    url: https://git.yoctoproject.org/git/poky
+    path: layers/poky
+    branch: scarthgap
+    commit: b68050f511efa8c4f3b24d05c8168d1ad23e9a2e
+    layers:
+      meta:
+      meta-poky:
+
+  # No url and no path: the repository that holds this file.
+  this:
+    layers:
+      meta-fleet-lab:
+
+local_conf_header:
+  fleet: |
+    # systemd-boot is the smallest EFI loader wic can lay down.
+    EFI_PROVIDER = "systemd-boot"
+    # Debug images and a root login are not part of the lab; the installer
+    # prints everything to the serial console instead.
+    EXTRA_IMAGE_FEATURES = ""
+    # Free the work directory as each recipe finishes; the lab host is a
+    # laptop, not a build farm.
+    INHERIT += "rm_work"

@@ -1,0 +1,11 @@
+# The update layout: one EFI partition, two symmetric root slots, one data
+# partition. GPT, written once by the installer. Slot B and the data
+# partition have nothing using them yet: the update machinery that writes
+# the idle slot and flips the boot entry arrives with a later article.
+# The fixed slot sizes are a build-time contract: wic fails the image build
+# when a root filesystem outgrows its slot.
+part /boot --source bootimg-efi --sourceparams="loader=systemd-boot" --ondisk vda --label boot --active --align 1024 --fstype=vfat --size=64M
+part / --source rootfs --ondisk vda --use-uuid --label roota --align 1024 --fstype=ext4 --fixed-size 256M
+part / --source rootfs --ondisk vda --use-uuid --label rootb --align 1024 --fstype=ext4 --fixed-size 256M
+part /data --ondisk vda --use-uuid --label data --align 1024 --fstype=ext4 --size=256M
+bootloader --ptable gpt --timeout=0
