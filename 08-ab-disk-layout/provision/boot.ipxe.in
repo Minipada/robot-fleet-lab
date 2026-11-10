@@ -1,0 +1,11 @@
+#!ipxe
+echo Fleet installer: fetching from @EDGE_IP@
+# The initrd= argument names the image loaded by the initrd line; the EFI
+# stub of the kernel looks it up by that name.
+initrd --name initrd.img http://@EDGE_IP@:8080/fleet-installer-image-qemux86-64.rootfs.cpio.gz || goto failed
+kernel http://@EDGE_IP@:8080/bzImage initrd=initrd.img fleet.url=http://@EDGE_IP@:8080 console=tty0 console=ttyS0,115200 || goto failed
+boot || goto failed
+
+:failed
+echo Install boot failed, dropping to the iPXE shell
+shell
