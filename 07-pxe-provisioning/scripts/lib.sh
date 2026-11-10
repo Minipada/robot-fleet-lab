@@ -9,7 +9,7 @@ VARS_VOLUME="fleet-robot_VARS.fd"
 VARS_TEMPLATE="${VARS_TEMPLATE:-/usr/share/OVMF/OVMF_VARS_4M.fd}"
 ROBOT_DOMAIN="07-pxe-provisioning_robot"
 RELEASE_TAG="${RELEASE_TAG:-07-images-v1}"
-RELEASE_URL="https://github.com/Minipada/robot-fleet-lab/releases/download/$RELEASE_TAG"
+RELEASE_URL="${RELEASE_URL:-https://github.com/Minipada/robot-fleet-lab/releases/download/$RELEASE_TAG}"
 
 # The four files the edge server serves, named as the Yocto build names them.
 IMAGE_FILES=(
