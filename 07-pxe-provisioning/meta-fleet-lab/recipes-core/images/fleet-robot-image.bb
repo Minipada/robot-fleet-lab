@@ -1,5 +1,7 @@
 SUMMARY = "The smallest bootable robot image: a kernel, busybox and nothing else"
 LICENSE = "MIT"
+HOMEPAGE = "https://github.com/Minipada/robot-fleet-lab"
+AUTHOR = "David Bensoussan"
 
 inherit core-image
 
