@@ -24,32 +24,9 @@ install -d "$TFTP" "$WWW"
 install -m 0644 /usr/lib/ipxe/snponly.efi "$TFTP/snponly.efi"
 sed "s/@EDGE_IP@/$EDGE_IP/g" /srv/provision/boot.ipxe.in >"$WWW/boot.ipxe"
 
-# The first answer (firmware) gets iPXE over TFTP. iPXE identifies itself
-# with DHCP option 175; its answer is the HTTP script instead, which is how
-# the boot avoids a loop.
-cat >/etc/dnsmasq.d/fleet.conf <<CONF
-interface=$iface
-bind-interfaces
-dhcp-range=192.168.79.100,192.168.79.150,12h
-dhcp-match=set:ipxe,175
-dhcp-boot=tag:!ipxe,snponly.efi
-dhcp-boot=tag:ipxe,http://$EDGE_IP:8080/boot.ipxe
-enable-tftp
-tftp-root=$TFTP
-log-dhcp
-CONF
-
-cat >/etc/nginx/conf.d/fleet.conf <<CONF
-server {
-    listen 8080;
-    root $WWW;
-    # The script is ours; everything else is the Yocto build output.
-    location = /boot.ipxe { }
-    location / {
-        root $IMAGES;
-    }
-}
-CONF
+sed -e "s/@IFACE@/$iface/g" -e "s/@EDGE_IP@/$EDGE_IP/g" \
+	/srv/provision/dnsmasq-fleet.conf.in >/etc/dnsmasq.d/fleet.conf
+install -m 0644 /srv/provision/nginx-fleet.conf /etc/nginx/conf.d/fleet.conf
 rm -f /etc/nginx/sites-enabled/default
 
 [ -d "$IMAGES" ] || {

@@ -1,0 +1,23 @@
+# DHCP and TFTP for the install network. Rendered by edge.sh, which fills in
+# @IFACE@ (the interface holding the lab address) and @EDGE_IP@.
+
+# Answer only on the install interface, and bind to it alone.
+interface=@IFACE@
+bind-interfaces
+
+# Addresses handed to robots.
+dhcp-range=192.168.79.100,192.168.79.150,12h
+
+# iPXE identifies itself with DHCP option 175. Tag those requests "ipxe".
+dhcp-match=set:ipxe,175
+
+# The firmware's first request gets iPXE over TFTP.
+dhcp-boot=tag:!ipxe,snponly.efi
+# iPXE's request gets the HTTP script, which is how the boot avoids a loop.
+dhcp-boot=tag:ipxe,http://@EDGE_IP@:8080/boot.ipxe
+
+enable-tftp
+tftp-root=/srv/tftp
+
+# Log every DHCP exchange, so the console of the edge VM shows what happened.
+log-dhcp

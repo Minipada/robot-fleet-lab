@@ -47,14 +47,21 @@ fleetinstall_boot_order() {
 		return 0
 	fi
 
+	# List the firmware boot entries ("Boot0003* UEFI PXE IPv4 ...") and keep the
+	# four-digit number of every network entry and every earlier fleet-robot one.
 	for num in $(efibootmgr | sed -n -E 's/^Boot([0-9A-Fa-f]{4})\*? .*(PXE|IPv4|IPv6|HTTP|fleet-robot).*/\1/p'); do
 		msg "fleet-install: removing boot entry Boot$num"
+		# Delete that entry from the firmware's boot list.
 		efibootmgr --quiet --delete-bootnum --bootnum "$num" || fatal "fleet-install: efibootmgr could not remove Boot$num"
 	done
 
+	# Add an entry named fleet-robot that loads systemd-boot from partition 1
+	# (the EFI System Partition) of the disk we just wrote. The new entry is put
+	# first in the boot order.
 	efibootmgr --quiet --create --disk "$disk" --part 1 --label "fleet-robot" \
 		--loader '\EFI\BOOT\bootx64.efi' || fatal "fleet-install: efibootmgr could not add the disk entry"
 	msg "fleet-install: boot order now:"
+	# Print the resulting list, so the console shows what the firmware will do.
 	efibootmgr >/dev/console
 }
 
@@ -67,13 +74,18 @@ fleetinstall_run() {
 
 	nic="$(fleetinstall_nic)" || fatal "fleet-install: no network interface"
 	ip link set "$nic" up
+	# Ask DHCP once for an address (-n: give up instead of daemonizing, -q: quit
+	# after the lease, -t 10: ten attempts) so bmaptool can reach the edge server.
 	udhcpc -i "$nic" -n -q -t 10 >/dev/console 2>&1 || fatal "fleet-install: no DHCP answer on $nic"
 
 	disk="$(fleetinstall_disk)" || fatal "fleet-install: no disk to install to"
 	msg "fleet-install: writing $image to $disk"
 
+	# Download the image over HTTP and write only the blocks the bmap lists,
+	# checking each block's checksum on the way.
 	bmaptool copy --bmap "$url/$bmap" "$url/$image" "$disk" >/dev/console 2>&1 ||
 		fatal "fleet-install: bmaptool failed, the disk was not completed"
+	# Flush everything written to the disk before looking at it again.
 	sync
 
 	# Let the kernel see the partition table that was just written.
