@@ -5,7 +5,7 @@ header:
 # writes it to a blank disk. Both build from one workspace, so one kas call
 # produces everything the edge server serves.
 machine: qemux86-64
-distro: poky
+distro: fleet-lab
 target:
   - fleet-robot-image
   - fleet-installer-image

@@ -10,20 +10,25 @@ deployment architecture for that problem, on two separate release paths: one tha
 restarts, and one that reboots. This repository is where those arguments become
 something you can run instead of take on faith.
 
-## Status: first increment boots
+## Status
 
-[06-outbound-wireguard/](06-outbound-wireguard/) is runnable: one hub, a
-stand-in for the customer's router, one edge site, and the outbound-only
-WireGuard tunnel between them. `vagrant up` inside that directory boots all
-three, and `scripts/demo.sh` walks through the proof per machine.
+Two increments run:
 
-Everything else — k3s on the edge servers, the two release paths, the
-remaining ring sites — is still documentation only. Each article that carries
+- [06-outbound-wireguard/](06-outbound-wireguard/): one hub, a stand-in for
+  the customer's router, one edge site, and the outbound-only WireGuard tunnel
+  between them. `vagrant up` inside that directory boots all three, and
+  `scripts/demo.sh` walks through the proof per machine.
+- [07-pxe-provisioning/](07-pxe-provisioning/): an edge server and a blank
+  robot. The robot network boots, writes a Yocto image to its disk, and
+  restarts from it. Start with its README; the images can be downloaded, so it
+  runs in about ten minutes.
+
+Everything else (k3s on the edge servers, the two release paths, the
+remaining ring sites) is still documentation only. Each article that carries
 a runnable claim adds one increment, in its own directory, as it publishes.
 
 The lint gate below runs from this first commit specifically so that everything
-added afterward — starting with the first playbook — is held to a standard from its
-own first line.
+added afterward is held to a standard from its own first line.
 
 ## Goal
 
